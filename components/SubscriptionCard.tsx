@@ -23,10 +23,6 @@ const SubscriptionCard = ({
   startDate,
   status,
 }: SubscriptionCardProps) => {
-  function formatStatus(): React.ReactNode {
-    throw new Error("Function not implemented.");
-  }
-
   return (
     <Pressable
       onPress={onPress}
