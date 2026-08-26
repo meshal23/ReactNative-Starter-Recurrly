@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-// import { usePostHog } from 'posthog-react-native';
+import { usePostHog } from "posthog-react-native";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -20,7 +20,7 @@ const SignUp = () => {
   const { signUp, errors, fetchStatus } = useSignUp();
   const { isSignedIn } = useAuth();
   const router = useRouter();
-  // const posthog = usePostHog();
+  const posthog = usePostHog();
 
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
@@ -46,13 +46,14 @@ const SignUp = () => {
       password,
     });
 
-    // if (error) {
-    //     console.error(JSON.stringify(error, null, 2));
-    //     posthog.capture('user_sign_up_failed', {
-    //         error_message: error.message,
-    //     });
-    //     return;
-    // }
+    if (error) {
+      console.error(JSON.stringify(error, null, 2));
+      posthog.capture('sign_up_failed', {
+        error_code: error.code,
+        error_message: error.message,
+      });
+      return;
+    }
 
     // Send verification email
     if (!error) {
@@ -73,11 +74,13 @@ const SignUp = () => {
             return;
           }
 
-          // posthog.identify(emailAddress, {
-          //     $set: { email: emailAddress },
-          //     $set_once: { sign_up_date: new Date().toISOString() },
-          // });
-          // posthog.capture('user_signed_up', { email: emailAddress });
+          // Identify the new user via their Clerk user ID (stable, non-PII distinct_id)
+          if (signUp.createdUserId) {
+            posthog.identify(signUp.createdUserId, {
+              $set_once: { first_sign_up_date: new Date().toISOString() },
+            });
+          }
+          posthog.capture('user_signed_up');
 
           const url = decorateUrl("/(tabs)");
           if (url.startsWith("http")) {

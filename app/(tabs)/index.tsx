@@ -16,11 +16,13 @@ import { styled } from "nativewind";
 import { useState } from "react";
 import { FlatList, Image, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+import { usePostHog } from "posthog-react-native";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function App() {
   const { user } = useUser();
+  const posthog = usePostHog();
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
     string | null
   >(null);
@@ -94,11 +96,18 @@ export default function App() {
         renderItem={({ item }) => (
           <SubscriptionCard
             expanded={expandedSubscriptionId === item.id}
-            onPress={() =>
+            onPress={() => {
+              const willExpand = expandedSubscriptionId !== item.id
               setExpandedSubscriptionId((curId) =>
                 curId === item.id ? null : item.id,
               )
-            }
+              posthog.capture('subscription_card_expanded', {
+                subscription_id: item.id,
+                subscription_name: item.name,
+                subscription_billing: item.billing,
+                expanded: willExpand,
+              })
+            }}
             {...item}
           />
         )}
